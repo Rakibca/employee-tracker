@@ -5,6 +5,7 @@ const consoleTable = require('console.table');
 const PORT = process.env.PORT || 3001;
 const app = express();
 
+
 // Express middleware
 app.use(express.urlencoded({
   extended: false
@@ -19,7 +20,7 @@ const db = mysql.createConnection({
     user: 'root',
     // MySQL password
     password: 'Qdb4@kpt2',
-    database: 'classlist_db'
+    database: 'employeeTracker_db'
   },
   console.log(`Connected to the employeeTracker_db database.`)
 );
@@ -70,25 +71,60 @@ function init() {
   }
 
   function viewDepartments() {
-    const sql = `SELECT id, movie_name AS title FROM movies`;
+    const sql = `SELECT department.id AS id, department.name AS department
+                 FROM department`;
+    db.promise().query(sql, (err, rows) => {
+      if (err) throw err;
+      console.table(rows);
+      promptEmployee();
+    })
+  }
 
-    db.query(sql, (err, rows) => {
-      if (err) {
-        res.status(500).json({
-          error: err.message
+  function viewRoles() {
+    const sql = `SELECT role.id, role.title, department.name AS department
+                 FROM role
+                 INNER JOIN department
+                 ON role.department_id = department.id`;
+    db.promise().query(sql, (err, rows) => {
+      if (err) throw err;
+      console.table(rows);
+      promptEmployee();
+    })
+  }
+
+  function viewRoles() {
+    const sql = `SELECT employee.id, employee.first_name, employee.last_name, role.title, department.name AS department, role.salary
+                 FROM employee
+                 LEFT JOIN role ON employee.role_id = role.id
+                 LEFT JOIN department ON role.department_id = department.id`;
+    db.promise().query(sql, (err, rows) => {
+      if (err) throw err;
+      console.table(rows);
+      promptEmployee();
+    })
+  }
+
+  function addDepartment() {
+    return inquirer.prompt([{
+        type: 'input',
+        name: 'addDept',
+        message: "Which department do you want to add?",
+      }])
+      .then(answer => {
+        const sql = `INSERT INTO department (name)
+                     VALUES (?)`;
+        db.query(sql, answer.addDept, (err, result) => {
+          if (err) throw err;
+          console.log('Added ' + answer.addDept + " to departments!");
+          viewDepartments();
         });
-        return;
-      }
-      res.json({
-        message: 'success',
-        data: rows
       });
-    });
   }
 
 
-
 }
+
+
 
 // Default response for any other request (Not Found)
 app.use((req, res) => {
