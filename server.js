@@ -1,5 +1,7 @@
-const mysql = require('mysql2')
+const mysql = require('mysql2');
+//const mysql = require('mysql2/promise');
 const inquirer = require('inquirer');
+const express = require('express');
 const consoleTable = require('console.table');
 
 const PORT = process.env.PORT || 3001;
@@ -19,7 +21,7 @@ const db = mysql.createConnection({
     // MySQL username,
     user: 'root',
     // MySQL password
-    password: 'Qdb4@kpt2',
+    password: '12345678',
     database: 'employeeTracker_db'
   },
   console.log(`Connected to the employeeTracker_db database.`)
@@ -29,13 +31,13 @@ const db = mysql.createConnection({
 init();
 
 function init() {
-  console.log("**********EMPLOYEE MANAGER**********");
+  console.log("**********EMPLOYEE TRACKER**********");
   promptEmployee();
 
   // Creates an array of questions for user input
   function promptEmployee() {
     return inquirer.prompt([{
-        type: 'checkbox',
+        type: 'list',
         name: 'questionsMain',
         message: 'What would you like to do?',
         choices: ['View all departments',
@@ -71,55 +73,76 @@ function init() {
   }
 
   function viewDepartments() {
-    const sql = `SELECT department.id AS id, department.name AS department
-                 FROM department`;
-    db.promise().query(sql, (err, rows) => {
-      if (err) throw err;
-      console.table(rows);
+    console.log("Displaying Results...\n\n");
+    db.query(`SELECT department.id AS id, department.name AS department FROM department;`,
+    function(err, results) {
+      console.table(results);
       promptEmployee();
-    })
-  }
+      console.table(`\n`);
+    });
+}
 
-  function viewRoles() {
-    const sql = `SELECT role.id, role.title, department.name AS department
-                 FROM role
-                 INNER JOIN department
-                 ON role.department_id = department.id`;
-    db.promise().query(sql, (err, rows) => {
-      if (err) throw err;
-      console.table(rows);
+function viewRoles() {
+  console.log("Displaying Results...\n\n");
+  db.query(`SELECT role.id, role.title, department.name AS department FROM role INNER JOIN department ON role.department_id = department.id;`,
+    function(err, results) {
+    console.table(results);
+    promptEmployee();
+    console.table(`\n`);
+  });
+}
+// function viewEmployees() {
+//   const sql = `SELECT employee.id, employee.first_name, employee.last_name, role.title, department.name AS department, role.salary
+//                FROM employee
+//                LEFT JOIN role
+//                ON employee.role_id = role.id
+//                LEFT JOIN department
+//                ON role.department_id = department.id`;
+//   db.promise().query(sql, (err, rows) => {
+//     if (err) throw err;
+//     console.table(rows);
+//     promptEmployee();
+//   })
+// }
+//ALL EMPLOYEES
+function viewEmployees() {
+  console.log("Displaying Results...\n\n");
+  db.query(
+    `SELECT employee.id, employee.first_name, employee.last_name, role.title, department.name AS DEPARTMENT, role.salary FROM employee LEFT JOIN role ON employee.role_id = role.id LEFT JOIN department on role.department_id = department.id;`,
+    function(err, results) {
+      console.table(results);
       promptEmployee();
-    })
-  }
+      console.table(`\n`);
+    });
+};
 
-  function viewRoles() {
-    const sql = `SELECT employee.id, employee.first_name, employee.last_name, role.title, department.name AS department, role.salary
-                 FROM employee
-                 LEFT JOIN role ON employee.role_id = role.id
-                 LEFT JOIN department ON role.department_id = department.id`;
-    db.promise().query(sql, (err, rows) => {
-      if (err) throw err;
-      console.table(rows);
-      promptEmployee();
-    })
-  }
+// function viewAllEmployees() {
+//   console.log("Displaying Results...\n\n");
+//   db.query(
+//     `SELECT employee.id AS ID, employee.first_name AS "FIRST NAME", employee.last_name AS "LAST NAME", role.title AS ROLE, department.name AS DEPARTMENT, role.salary AS SALARY, CONCAT(manager.first_name, ' ', manager.last_name) AS MANAGER FROM employee LEFT JOIN role on employee.role_id = role.id LEFT JOIN department on role.department_id = department.id LEFT JOIN employee manager on manager.id = employee.manager_id;`,
+//     function(err, results) {
+//       console.table(results);
+//       mainMenu();
+//       console.table(`\n`);
+//     });
+// };
 
-  function addDepartment() {
-    return inquirer.prompt([{
-        type: 'input',
-        name: 'addDept',
-        message: "Which department do you want to add?",
-      }])
-      .then(answer => {
-        const sql = `INSERT INTO department (name)
-                     VALUES (?)`;
-        db.query(sql, answer.addDept, (err, result) => {
-          if (err) throw err;
-          console.log('Added ' + answer.addDept + " to departments!");
-          viewDepartments();
-        });
-      });
-  }
+// function addDepartment() {
+//   return inquirer.prompt([{
+//       type: 'input',
+//       name: 'addDept',
+//       message: "Which department do you want to add?",
+//     }])
+//     .then(answer => {
+//       const sql = `INSERT INTO department (name)
+//                      VALUES (?)`;
+//       db.query(sql, answer.addDept, (err, result) => {
+//         if (err) throw err;
+//         console.log('Added ' + answer.addDept + " to departments!");
+//         viewDepartments();
+//       });
+//     });
+// }
 
 
 }
