@@ -13,7 +13,7 @@ app.use(express.urlencoded({
 app.use(express.json());
 
 
-// Connect to database called 'db'
+// Connect to MYSQL database called 'employeeTracker_db'
 const db = mysql.createConnection({
     host: 'localhost',
     // MySQL username,
@@ -29,7 +29,8 @@ const db = mysql.createConnection({
 init();
 
 function init() {
-  console.log("**********EMPLOYEE TRACKER**********");
+  console.log("********** WELCOME TO THE EMPLOYEE TRACKER **********");
+  console.table(`\n`);
   promptEmployee();
 
   function promptEmployee() {
@@ -63,14 +64,17 @@ function init() {
         } else if (answers.questionsMain === 'Update an employee') {
           updateEmployee();
         } else if (answers.questionsMain === 'Exit') {
-          db.end()
+          db.end();
+          console.table(`\n`);
+          console.log("********** EXITED FROM THE MENU **********");
+          console.table(`\n`);
+          console.log("Press (ctrl-c) to exit to command line");
         }
       })
   }
 
 
   function viewDepartments() {
-    console.table(`\n`);
     console.log("Displaying All Departments:\n\n");
     db.query(`SELECT department.id, department.name AS DEPARTMENT FROM department;`,
       function(err, results) {
@@ -82,7 +86,6 @@ function init() {
 
 
   function viewRoles() {
-    console.table(`\n`);
     console.log("Displaying All Roles:\n\n");
     db.query(`SELECT role.id, role.title AS TITLE, role.salary AS SALARY, department.name AS DEPARTMENT FROM role INNER JOIN department ON role.department_id = department.id;`,
       function(err, results) {
@@ -94,7 +97,6 @@ function init() {
 
 
   function viewEmployees() {
-    console.table(`\n`);
     console.log("Displaying All Employees:\n\n");
     db.query(`SELECT employee.id, employee.first_name AS FIRST_NAME, employee.last_name AS LAST_NAME, role.title AS TITLE, role.salary AS SALARY, department.name AS DEPARTMENT, CONCAT(manager.first_name, ' ', manager.last_name, ' ', employee.manager_id) AS MANAGER_WITH_ID FROM employee LEFT JOIN role on employee.role_id = role.id LEFT JOIN department on role.department_id = department.id LEFT JOIN employee manager on manager.id = employee.manager_id;`,
       function(err, results) {
@@ -220,7 +222,7 @@ function init() {
                 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
                 return inquirer.prompt([{
                     type: 'list',
-                    name: 'manager',
+                    name: 'assignManager',
                     message: "Who is the manager of the new employee?",
                     choices: allManagers
                   }])
@@ -247,7 +249,7 @@ function init() {
     const sql = `SELECT * FROM employee`;
     db.query(sql, (err, data) => {
       if (err) throw err;
-      const employees = data.map(({
+      const allEmployees = data.map(({
         id,
         first_name,
         last_name
@@ -258,20 +260,18 @@ function init() {
       ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
       return inquirer.prompt([{
           type: 'list',
-          name: 'name',
+          name: 'employeeName',
           message: "Which employee would you like to update?",
-          choices: employees
+          choices: allEmployees
         }])
         .then(employeeAnswer => {
-          const employee = employeeAnswer.name;
-          const params = [];
-          params.push(employee);
-
+          const employeeArray = [];
+          const employeeName = employeeAnswer.employeeName;
+          employeeArray.push(employeeName);
           const sql = `SELECT * FROM role`;
           db.query(sql, (err, data) => {
             if (err) throw err;
-
-            const roles = data.map(({
+            const allRoles = data.map(({
               id,
               title
             }) => ({
@@ -281,23 +281,21 @@ function init() {
             ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
             return inquirer.prompt([{
                 type: 'list',
-                name: 'role',
+                name: 'newRole',
                 message: "What is the employee's new role?",
-                choices: roles
+                choices: allRoles
               }])
               .then(roleAnswer => {
-                const role = roleAnswer.role;
-                params.push(role);
-
-                const employee = params[0]
-                params[0] = role
-                params[1] = employee
-
+                const newRole = roleAnswer.newRole;
+                employeeArray.push(newRole);
+                const temp = employeeArray[0];
+                employeeArray[1] = temp;
+                employeeArray[0] = newRole;
                 const sql = `UPDATE employee SET role_id = ? WHERE id = ?`;
-                db.query(sql, params, (err, results) => {
+                db.query(sql, employeeArray, (err, results) => {
                   if (err) throw err;
                   console.table(`\n`);
-                  console.log("Employee has been updated!");
+                  console.log("Employee role with ID: " + employeeName + " has been updated");
                   console.table(`\n`);
                   viewEmployees();
                 })
@@ -306,10 +304,7 @@ function init() {
         })
     })
   }
-
-
 }
-
 
 
 // Default response for any other request (Not Found)
